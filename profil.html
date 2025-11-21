@@ -5,15 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title data-i18n="app.profileTitle">Vskytower - Profil</title>
 
-  <!-- CSS global + thèmes -->
+  <!-- CSS global -->
   <link rel="stylesheet" href="style/main.css"/>
-  <link rel="stylesheet" href="themes/themes.css"/>
-  <!-- on part sur retro par défaut, mais ça sera écrasé par le script -->
-  <link rel="stylesheet" href="themes/retro.css" id="theme-css"/>
+
+  <!-- Initialisation du thème (même logique que VBlocks) -->
+  <script>
+    let currentTheme = localStorage.getItem('themeVBlocks') || 'neon';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.setAttribute('data-theme', currentTheme);
+    });
+  </script>
+  <!-- Un SEUL CSS de thème, comme VBlocks -->
+  <link rel="stylesheet" href="themes/themes.css" id="theme-style"/>
 
   <!-- FOND JAUNE FIXE + UI PROFIL -->
   <style>
-    /* Fond jaune identique partout (ne dépend pas du thème) */
+    /* Fond jaune identique partout */
     html, body { height: 100%; }
 
     body{
@@ -313,6 +321,11 @@
       color:#0e4b26;
       transform:scale(1.05);
     }
+    .theme-choice-vb.locked {
+      filter:grayscale(1);
+      opacity:.6;
+      cursor:not-allowed;
+    }
 
     .popup-actions {
       margin-top:0.6em;
@@ -382,6 +395,7 @@
 
   <!-- Contenu Profil -->
   <main class="profil-content">
+    <!-- Mets ton logo ici -->
     <img src="assets/images/vskytower-logo.png" alt="Vskytower"
          class="profil-logo" draggable="false"/>
 
@@ -450,7 +464,7 @@
         .replace(/\s+/g,"");
     }
 
-    // liste de tous les thèmes dispo (même noms que tes dossiers / css)
+    // liste des thèmes affichés dans la popup (tous débloqués ici)
     function getAllThemesList(){
       return [
         "retro","neon","bubble","nature","nuit",
@@ -459,12 +473,12 @@
       ];
     }
 
-    // thème courant partagé avec le jeu (clé "themeVBlocks")
+    // clé commune avec VBlocks : themeVBlocks
     function getCurrentTheme(){
       const primaryKey = "themeVBlocks";
       const legacyKey  = "vsky_theme";
       let t = localStorage.getItem(primaryKey) || localStorage.getItem(legacyKey);
-      if (!t) t = "retro";
+      if (!t) t = "neon";
       t = normalizeThemeKey(t);
       localStorage.setItem(primaryKey, t);
       localStorage.setItem(legacyKey, t);
@@ -474,33 +488,16 @@
     function applyLocalTheme(themeKey){
       const primaryKey = "themeVBlocks";
       const legacyKey  = "vsky_theme";
-      const t = normalizeThemeKey(themeKey || getCurrentTheme() || "retro");
+      const t = normalizeThemeKey(themeKey || getCurrentTheme() || "neon");
 
       // enregistre
       localStorage.setItem(primaryKey, t);
       localStorage.setItem(legacyKey, t);
 
-      // met à jour la feuille de style spécifique (retro.css / neon.css / etc.)
-      let link = document.getElementById("theme-css");
-      if (!link){
-        link = document.createElement("link");
-        link.id  = "theme-css";
-        link.rel = "stylesheet";
-        document.head.appendChild(link);
-      }
-      link.href = "themes/" + t + ".css";
-
-      // data-theme pour themes.css
+      // applique sur html/body (themes.css se charge tout seul)
+      currentTheme = t;
       document.documentElement.setAttribute("data-theme", t);
       document.body.setAttribute("data-theme", t);
-    }
-
-    // TOUS LES THÈMES SONT DÉBLOQUÉS
-    function getOwnedThemes(){
-      const all = getAllThemesList().map(normalizeThemeKey).filter(Boolean);
-      // on sauvegarde quand même la liste complète si tu veux t'en servir plus tard
-      localStorage.setItem("vsky_themes_possedes", JSON.stringify(all));
-      return all;
     }
 
     // ================== PSEUDO ==================
@@ -554,7 +551,10 @@
       const themeBox = document.getElementById("themeListVB");
       if (!popup || !themeBox) return;
 
-      const ALL_THEMES = getOwnedThemes(); // ici = tous les thèmes
+      const ALL_THEMES = getAllThemesList().map(normalizeThemeKey).filter(Boolean);
+
+      // ici on considère que tout est débloqué (pas de lock)
+      const ownedSet = new Set(ALL_THEMES);
 
       let selectedTheme = getCurrentTheme();
 
@@ -576,7 +576,7 @@
         }
       });
 
-      // clic sur les thèmes (tous sont débloqués)
+      // clic sur les thèmes
       Array.from(themeBox.querySelectorAll(".theme-choice-vb")).forEach(btn => {
         btn.addEventListener("click", () => {
           Array.from(themeBox.querySelectorAll(".theme-choice-vb")).forEach(b => b.classList.remove("active"));
@@ -597,7 +597,7 @@
 
     // ================== INIT PAGE ==================
     window.addEventListener("DOMContentLoaded", () => {
-      // appliquer le thème courant (clé partagée avec le jeu)
+      // applique le thème courant sur html/body
       applyLocalTheme(getCurrentTheme());
 
       // pseudo courant
@@ -615,6 +615,15 @@
       if (btnApplis){
         btnApplis.style.display = "none";
         btnApplis.onclick = null;
+      }
+    });
+
+    // synchro multi-onglet comme VBlocks
+    window.addEventListener("storage", (e) => {
+      if (e.key === "themeVBlocks") {
+        currentTheme = localStorage.getItem('themeVBlocks') || "neon";
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        document.body.setAttribute('data-theme', currentTheme);
       }
     });
   </script>
