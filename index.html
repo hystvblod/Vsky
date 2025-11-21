@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title data-i18n="app.title">Vskytower - Accueil</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style/main.css">
+  <script defer src="js/i18n.js"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>I18N.init('fr'));</script>
+
+  <style>
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(60% 50% at 65% 25%, rgba(255,245,171,.55), rgba(0,0,0,0) 60%),
+        radial-gradient(70% 60% at 10% 85%, rgba(255,232,140,.45), rgba(0,0,0,0) 65%),
+        linear-gradient(180deg,#ffe082 0%, #ffd059 38%, #ffbf2d 58%, #f4ab00 100%) !important;
+      background-attachment: fixed !important;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* icônes top droite (chemins identiques à l’AAB) */
+    .top-buttons{position:fixed;right:18px;top:18px;display:flex;gap:14px;z-index:20}
+    .btn-icon img{width:28px;height:28px;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+
+    /* contenu centré */
+    .screen{
+      min-height:100vh;
+      padding:96px 0 64px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;
+    }
+
+    /* logo RÉDUIT */
+    .vblocks-logo{display:block;margin:0 auto 4px;width:min(56vw,240px);height:auto}
+
+    /* liste de boutons — plus étroits + espacés */
+    .menu-list{
+      width:100%;
+      display:flex; flex-direction:column; align-items:center; gap:48px;
+    }
+    .menu-btn{
+      width:min(82vw, 520px);
+      position:relative;height:88px;border-radius:999px;border:0;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;padding:0 72px 0 28px;
+      box-shadow:0 6px 16px rgba(0,0,0,.22);
+    }
+    .menu-btn .btn-label{font-weight:900;font-size:30px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+    .menu-btn .info-btn{
+      position:absolute;right:16px;top:50%;transform:translateY(-50%);
+      width:54px;height:54px;border-radius:50%;display:grid;place-items:center;
+      color:#2f3b44;background:#f2f2f2;font-weight:900;font-size:26px;line-height:1;
+      box-shadow:0 8px 18px rgba(0,0,0,.22), inset 0 -1px 0 rgba(0,0,0,.06)
+    }
+
+    /* couleurs mates */
+    .menu-btn.violet{ /* Défi */
+      background:linear-gradient(90deg,#7267ba 0%, #5d52aa 50%, #4c4398 100%);
+    }
+    .menu-btn.bluebrand{ /* Infini — bleu du logo */
+      background:linear-gradient(90deg,#6bb8ff 0%, #3d91f2 50%, #1e6fe0 100%);
+    }
+    .menu-btn.pink{ /* Boutique */
+      background:linear-gradient(90deg,#c8718f 0%, #b35f7e 50%, #a05270 100%);
+    }
+
+    @media (max-width:380px){
+      .menu-list{gap:32px}
+      .menu-btn{height:78px; width:min(88vw, 460px)}
+      .menu-btn .btn-label{font-size:26px}
+      .menu-btn .info-btn{width:48px;height:48px;font-size:22px}
+    }
+  </style>
+</head>
+
+<body>
+  <!-- icônes top droite -->
+  <div class="top-buttons top-buttons-home">
+    <a href="profil.html" class="btn-icon" aria-label="Profil" data-i18n-aria="top.profile">
+      <img src="assets/icons/user.svg" alt="">
+    </a>
+    <a href="parametres.html" class="btn-icon" aria-label="Paramètres" data-i18n-aria="top.settings">
+      <img src="assets/icons/settings.svg" alt="">
+    </a>
+  </div>
+
+  <div class="screen">
+    <img class="vblocks-logo" src="assets/logo/vskytower.webp" alt="">
+
+    <div class="menu-list">
+      <!-- DÉFI (remplace Jeu) -->
+      <button class="menu-btn violet" onclick="location.href='vskystack.html?mode=defi'">
+        <span class="btn-label" data-i18n="menu.challenge">Défi</span>
+        <span class="info-btn" tabindex="0" data-i18n-tip="tip.challenge">?</span>
+      </button>
+
+      <!-- INFini (bleu marque) -->
+      <button class="menu-btn bluebrand" onclick="location.href='vskystack.html?mode=infini'">
+        <span class="btn-label" data-i18n="menu.infinity">Infini</span>
+        <span class="info-btn" tabindex="0" data-i18n-tip="tip.infinity">?</span>
+      </button>
+
+      <!-- Boutique (rose) -->
+      <button class="menu-btn pink" onclick="location.href='boutique.html'">
+        <span class="btn-label" data-i18n="menu.shop">Boutique</span>
+        <span class="info-btn" tabindex="0" data-i18n-tip="tip.shop">?</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // tooltips
+    document.querySelectorAll('.info-btn').forEach(el=>{
+      el.addEventListener('click', ()=> alert(I18N.t(el.getAttribute('data-i18n-tip'))));
+    });
+  </script>
+</body>
+</html>

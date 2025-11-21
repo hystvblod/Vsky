@@ -1,0 +1,47 @@
+{
+  "app": { "title": "Vskytower - Accueil" },
+  "top": { "profile": "Profil", "settings": "Paramètres" },
+  "menu": { "classic": "Classic", "infinity": "Infini", "duel": "Duel", "shop": "Boutique" },
+  "tip": {
+    "classic": "Mode Classic",
+    "infinity": "Mode Infini",
+    "duel": "Mode Duel",
+    "shop": "Débloque des thèmes et personnalise le jeu",
+
+    
+  "app": { "title": "Vskytower - Accueil" },
+  "top": { "profile": "Profil", "settings": "Paramètres" },
+  "menu": { "challenge": "Défi", "infinity": "Infini", "shop": "Boutique" },
+  "tip": {
+    "challenge": "Relève des défis avec règles spéciales",
+    "infinity": "Monte le plus haut possible sans limite",
+    "shop": "Débloque des thèmes et personnalisations",
+
+    
+  "app": { "settingsTitle": "Vskytower - Paramètres", "profileTitle": "Vskytower - Profil" },
+  "top": { "profile": "Profil", "settings": "Paramètres" },
+  "common": { "backHome": "Accueil", "save": "Enregistrer" },
+  "settings": {
+    "title": "Paramètres",
+    "sound": "Sons", "sound_hint": "Effets boutons et jeu",
+    "music": "Musique", "music_hint": "Ambiance fond",
+    "haptics": "Vibrations", "haptics_hint": "Retour haptique",
+    "lang": "Langue", "lang_hint": "Interface",
+    "reset": "Réinitialiser",
+    "reset_confirm": "Voulez-vous vraiment réinitialiser les données ?"
+  ,
+  "profile": {
+    "title": "Profil",
+    "nickname": "Pseudo",
+    "random": "Aléatoire",
+    "vcoins": "VCoins",
+    "tokens": "Jetons",
+    "saved": "Profil enregistré."
+  }
+}
+
+  
+}
+
+  }
+}

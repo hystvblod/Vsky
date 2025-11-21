@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"/>
+<title>Pixi Smoke Test</title>
+<style>body{margin:0;background:#111;color:#eee;font-family:system-ui}#log{padding:8px}</style>
+<script src="https://unpkg.com/pixi.js@7/dist/pixi.min.js"></script>
+<script>if(!window.PIXI){document.write('<script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"><\/script>')}</script>
+<script>if(!window.PIXI){document.write('<script src="js/vendor/pixi.min.js"><\/script>')}</script>
+</head><body>
+<div id="log">Test Pixi…</div>
+<script>
+  if(!window.PIXI){ document.getElementById('log').textContent='Pixi introuvable (CDN bloqué ?).'; }
+  else{
+    const app=new PIXI.Application({background:0x20232a, width:360, height:240, antialias:true});
+    document.body.appendChild(app.view);
+    const g=new PIXI.Graphics();
+    g.beginFill(0x61dafb).drawRect(40,40,280,160).endFill();
+    app.stage.addChild(g);
+    document.getElementById('log').textContent='OK: Pixi chargé.';
+  }
+</script>
+</body></html>

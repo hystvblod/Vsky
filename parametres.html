@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title data-i18n="app.settingsTitle">Vskytower - Paramètres</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style/main.css">
+
+  <!-- même fond que l'index -->
+  <style>
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(60% 50% at 65% 25%, rgba(255,245,171,.55), rgba(0,0,0,0) 60%),
+        radial-gradient(70% 60% at 10% 85%, rgba(255,232,140,.45), rgba(0,0,0,0) 65%),
+        linear-gradient(180deg,#ffe082 0%, #ffd059 38%, #ffbf2d 58%, #f4ab00 100%) !important;
+      background-attachment: fixed !important;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* top icons */
+    .top-buttons{position:fixed;right:18px;top:18px;display:flex;gap:14px;z-index:20}
+    .btn-icon img{width:28px;height:28px;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+    .back-btn{position:fixed;left:14px;top:14px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:transparent;border:0;cursor:pointer}
+    .back-btn svg{width:26px;height:26px}
+
+    /* container */
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:86px 14px 40px}
+    .panel{
+      width:min(92vw,720px);
+      background:rgba(255,255,255,.12);
+      backdrop-filter: blur(4px);
+      border-radius:18px;
+      box-shadow:0 10px 28px rgba(0,0,0,.25);
+      border:2px solid rgba(255,255,255,.25);
+      color:#0e1420;
+      padding:18px;
+    }
+    .title{margin:2px 0 14px;font-size:28px;font-weight:900;color:#0b0b0b;text-shadow:0 1px 0 rgba(255,255,255,.45);text-align:center}
+
+    /* langue (avec drapeaux) */
+    .lang-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:6px 0 14px}
+    .lang-btn{
+      background:rgba(255,255,255,.6);border:0;border-radius:14px;padding:10px 12px;
+      display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.12)
+    }
+    .lang-btn img{width:24px;height:24px;display:block}
+
+    /* mini HUD monnaie */
+    .coins{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+    .coin-card{
+      background:rgba(255,255,255,.6);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;
+      box-shadow:0 4px 14px rgba(0,0,0,.12)
+    }
+    .coin-card img{width:28px;height:28px;display:block}
+    .coin-card b{font-size:14px;opacity:.8}
+    .coin-val{font-size:22px;font-weight:900;margin-left:auto}
+
+    .foot{display:flex;justify-content:center;margin-top:16px}
+    .btn{height:44px;border-radius:12px;border:0;cursor:pointer;font-weight:800;padding:0 16px;box-shadow:0 6px 16px rgba(0,0,0,.18);background:#3b82f6;color:#fff}
+  </style>
+
+  <script defer src="js/i18n.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',()=>I18N.init('fr'));
+  </script>
+</head>
+<body>
+
+  <!-- back + icônes à droite (mêmes chemins que l’AAB) -->
+  <button class="back-btn" onclick="history.back()" aria-label="Retour">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="top-buttons">
+    <a href="profil.html" class="btn-icon" aria-label="Profil" data-i18n-aria="top.profile">
+      <img src="assets/icons/user.svg" alt="">
+    </a>
+    <a href="parametres.html" class="btn-icon" aria-label="Paramètres" data-i18n-aria="top.settings">
+      <img src="assets/icons/settings.svg" alt="">
+    </a>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="title" data-i18n="settings.title">Paramètres</div>
+
+      <!-- Langues avec drapeaux -->
+      <div class="lang-grid">
+        <button class="lang-btn" onclick="setLang('fr')"><img src="assets/flags/fr.svg" onerror="this.src='assets/flags/fr.png'"><span>Français</span></button>
+        <button class="lang-btn" onclick="setLang('en')"><img src="assets/flags/en.svg" onerror="this.src='assets/flags/en.png'"><span>English</span></button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="assets/flags/es.svg" onerror="this.src='assets/flags/es.png'"><span>Español</span></button>
+        <button class="lang-btn" onclick="setLang('de')"><img src="assets/flags/de.svg" onerror="this.src='assets/flags/de.png'"><span>Deutsch</span></button>
+        <button class="lang-btn" onclick="setLang('it')"><img src="assets/flags/it.svg" onerror="this.src='assets/flags/it.png'"><span>Italiano</span></button>
+        <button class="lang-btn" onclick="setLang('nl')"><img src="assets/flags/nl.svg" onerror="this.src='assets/flags/nl.png'"><span>Nederlands</span></button>
+        <button class="lang-btn" onclick="setLang('ptbr')"><img src="assets/flags/ptbr.svg" onerror="this.src='assets/flags/ptbr.png'"><span>Português BR</span></button>
+      </div>
+
+      <!-- VCoins / Jetons avec images -->
+      <div class="coins">
+        <div class="coin-card">
+          <img src="assets/icons/vcoins.svg" onerror="this.src='assets/icons/vcoins.png'" alt="">
+          <div>
+            <b data-i18n="profile.vcoins">VCoins</b>
+          </div>
+          <div id="vcoins" class="coin-val">0</div>
+        </div>
+        <div class="coin-card">
+          <img src="assets/icons/jetons.svg" onerror="this.src='assets/icons/jetons.png'" alt="">
+          <div>
+            <b data-i18n="profile.tokens">Jetons</b>
+          </div>
+          <div id="jetons" class="coin-val">0</div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <button class="btn" onclick="location.href='index.html'" data-i18n="common.backHome">Accueil</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // lecture/écriture simple
+    const read  = (k,d)=> JSON.parse(localStorage.getItem(k) ?? JSON.stringify(d));
+    const write = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+    // hydrate monnaies
+    (function(){
+      const w = read('wallet', { vcoins:0, jetons:0 });
+      document.getElementById('vcoins').textContent = w.vcoins;
+      document.getElementById('jetons').textContent = w.jetons;
+    })();
+
+    // langue + i18n
+    function setLang(l){ write('app.lang', l); if(window.I18N){ I18N.init(l); } }
+  </script>
+</body>
+</html>

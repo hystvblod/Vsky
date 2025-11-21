@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title data-i18n="app.profileTitle">Vskytower - Profil</title>
+
+  <!-- CSS global + thèmes -->
+  <link rel="stylesheet" href="style/main.css"/>
+  <link rel="stylesheet" href="themes/themes.css"/>
+  <!-- on part sur retro par défaut, mais ça sera écrasé par le script -->
+  <link rel="stylesheet" href="themes/retro.css" id="theme-css"/>
+
+  <!-- FOND JAUNE FIXE + UI PROFIL -->
+  <style>
+    /* Fond jaune identique partout (ne dépend pas du thème) */
+    html, body { height: 100%; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(60% 50% at 65% 25%, rgba(255,245,171,.55), rgba(0,0,0,0) 60%),
+        radial-gradient(70% 60% at 10% 85%, rgba(255,232,140,.45), rgba(0,0,0,0) 65%),
+        linear-gradient(180deg,#ffe082 0%, #ffd059 38%, #ffbf2d 58%, #f4ab00 100%) !important;
+      background-attachment: fixed !important;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      color:#0d1720;
+    }
+
+    /* Barre du haut (retour + icônes) */
+    .top-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      z-index: 30;
+      padding: 0 12px;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    .top-left,
+    .top-right {
+      display: flex;
+      align-items: center;
+      pointer-events: all;
+    }
+    .top-right { gap: 14px; }
+
+    .btn-back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.14s;
+    }
+    .btn-back svg { width: 30px; height: 30px; display:block; }
+    .btn-back:hover { background: #0000001b; }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.15s;
+      width: 44px;
+      height: 44px;
+    }
+    .btn-icon img {
+      width: 26px;
+      height: 26px;
+      display: block;
+      filter: drop-shadow(0 1px 2px #0006);
+    }
+    .btn-icon:hover { background:#00000018; }
+
+    /* Contenu principal du profil */
+    .profil-content {
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      padding-top:6.2em;
+      padding-bottom:2.5em;
+      box-sizing:border-box;
+    }
+
+    .profil-logo {
+      width: 96px;
+      margin-bottom: 0.5em;
+      margin-top: -0.4em;
+      border-radius: 1.2em;
+      filter: drop-shadow(0 6px 20px #00000036);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .profil-title {
+      font-size: 2em;
+      font-weight: 900;
+      color: #3b1e00;
+      letter-spacing: 0.05em;
+      text-align:center;
+      text-shadow: 0 2px 10px #fff4;
+      margin-bottom:0.3em;
+    }
+
+    .profil-id {
+      font-size: 1.1em;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 0.4em 1.4em;
+      border-radius: 1.4em;
+      background: rgba(255,255,255,0.78);
+      box-shadow: 0 3px 14px #f29f0044;
+      color:#5c3a00;
+      text-transform: uppercase;
+    }
+
+    .profil-change-pseudo {
+      margin-top: 0.9em;
+      border-radius: 1.4em;
+      border: 2px dashed rgba(120,65,0,0.6);
+      padding: 0.4em 1.2em;
+      background: rgba(255,255,255,0.65);
+      font-size: 0.95em;
+      font-weight: 700;
+      color:#5b3b00;
+      cursor:pointer;
+      box-shadow: 0 3px 12px #f29f0044;
+      transition: background 0.15s, transform 0.12s;
+    }
+    .profil-change-pseudo:hover {
+      background: rgba(255,255,255,0.9);
+      transform: scale(1.03);
+    }
+
+    .theme-btn-vb,
+    .applis-btn-vb {
+      width: min(420px, 94vw);
+      margin-top: 1.4em;
+      border-radius: 1.3em;
+      border: none;
+      padding: 0.95em 0.7em;
+      font-size: 1.08em;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:0.7em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 18px #00000033;
+      background: linear-gradient(90deg,#70dcff 0%,#b2ff9d 100%);
+      color:#0f3a23;
+    }
+    .theme-btn-vb:active,
+    .applis-btn-vb:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 10px #00000033;
+      background: linear-gradient(90deg,#47bcd3 0%,#a6f382 100%);
+    }
+
+    .applis-btn-vb {
+      background: linear-gradient(90deg,#ffd54f 0%,#ffb300 100%);
+      color:#4a2b00;
+    }
+
+    @media (max-width:520px){
+      .profil-content{padding-top:4.2em;}
+      .profil-title{font-size:1.35em;}
+      .profil-logo{width:78px;}
+    }
+
+    /* Popup pseudo */
+    .popup-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+    }
+    .popup-bg.active { display:flex; }
+
+    .popup-box {
+      background:#fff;
+      border-radius:18px;
+      padding:1.8em 1.4em 1.6em;
+      width:90%;
+      max-width:360px;
+      text-align:center;
+      box-shadow:0 10px 30px #0004;
+    }
+    .popup-box h2 {
+      margin:0 0 0.7em;
+      font-size:1.25em;
+    }
+    .popup-box input {
+      width: 100%;
+      box-sizing:border-box;
+      padding:0.7em 0.8em;
+      font-size:1.02em;
+      border-radius:10px;
+      border:1px solid #d0d0d0;
+      outline:none;
+    }
+    .popup-box input:focus {
+      border-color:#ffb300;
+      box-shadow:0 0 0 2px #ffe082aa;
+    }
+    #pseudoError {
+      margin-top:0.4em;
+      min-height:1.2em;
+      font-size:0.9em;
+      color:#d32f2f;
+    }
+    .popup-buttons {
+      margin-top:1.1em;
+      display:flex;
+      justify-content:center;
+      gap:0.7em;
+      flex-wrap:wrap;
+    }
+    .popup-buttons button {
+      border-radius:999px;
+      border:none;
+      padding:0.55em 1.4em;
+      font-weight:800;
+      font-size:0.98em;
+      cursor:pointer;
+    }
+    .popup-buttons .primary {
+      background:#43a047;
+      color:#fff;
+    }
+    .popup-buttons .secondary {
+      background:#eeeeee;
+      color:#424242;
+    }
+
+    /* Popup thèmes */
+    .popup-theme-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(24,44,26,0.68);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 6000;
+    }
+    .popup-theme-bg.active { display:flex; }
+
+    .popup-theme-vb {
+      background:#fff;
+      border-radius:2em;
+      padding:2em 1.2em 1.6em;
+      width:93vw;
+      max-width:380px;
+      text-align:center;
+      box-shadow:0 8px 38px #82e7bc22;
+      animation:popupfade .18s ease-out;
+    }
+
+    .popup-theme-vb h2 {
+      margin:0 0 1.1em;
+      font-size:1.25em;
+    }
+
+    .theme-list-vb {
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0.9em;
+      margin-bottom:1.2em;
+    }
+
+    .theme-choice-vb {
+      border:none;
+      border-radius:1em;
+      padding:0.55em 1.2em;
+      font-size:0.98em;
+      font-weight:800;
+      background:#e6f6ea;
+      color:#156c31;
+      cursor:pointer;
+      box-shadow:0 2px 10px #a2dcd220;
+      transition:background .13s,color .13s,transform .13s;
+      outline:none;
+    }
+    .theme-choice-vb.active,
+    .theme-choice-vb:active {
+      background:linear-gradient(90deg,#70dcff 0%,#b2ff9d 100%);
+      color:#0e4b26;
+      transform:scale(1.05);
+    }
+
+    .popup-actions {
+      margin-top:0.6em;
+      display:flex;
+      justify-content:center;
+      gap:0.8em;
+      flex-wrap:wrap;
+    }
+    .vb-btn-validate,
+    .vb-btn-cancel {
+      border-radius:1em;
+      border:none;
+      padding:0.6em 1.6em;
+      font-weight:800;
+      font-size:0.98em;
+      cursor:pointer;
+    }
+    .vb-btn-validate {
+      background:#59e7aa;
+      color:#093c1c;
+    }
+    .vb-btn-validate:active { background:#2ad680; }
+    .vb-btn-cancel {
+      background:#eeeeee;
+      color:#6d787a;
+    }
+    .vb-btn-cancel:active { background:#c7c7c7; }
+
+    @keyframes popupfade {
+      from { opacity:0; transform:translateY(38px) scale(.96);}
+      to   { opacity:1; transform:none; }
+    }
+  </style>
+
+  <!-- i18n (optionnel) -->
+  <script defer src="js/i18n.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.I18N && typeof I18N.init === "function") {
+        I18N.init("fr");
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <!-- Barre de navigation -->
+  <div class="top-bar">
+    <div class="top-left">
+      <a href="index.html" class="btn-back" aria-label="Retour">
+        <svg viewBox="0 0 36 36" fill="none">
+          <path d="M23.5 28L15 19.5L23.5 11"
+                stroke="#fff" stroke-width="3.2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+    <div class="top-right">
+      <a href="profil.html" class="btn-icon" aria-label="Profil">
+        <img src="assets/icons/user.svg" alt="Profil">
+      </a>
+      <a href="parametres.html" class="btn-icon" aria-label="Paramètres">
+        <img src="assets/icons/settings.svg" alt="Paramètres">
+      </a>
+    </div>
+  </div>
+
+  <!-- Contenu Profil -->
+  <main class="profil-content">
+    <img src="assets/images/vskytower-logo.png" alt="Vskytower"
+         class="profil-logo" draggable="false"/>
+
+    <div class="profil-title" data-i18n="profil.title">Mon profil</div>
+
+    <div class="profil-id" id="profilPseudo">MonPseudo</div>
+
+    <button class="profil-change-pseudo" id="btnChangePseudo">
+      <span data-i18n="profil.btn.changePseudo">Modifier mon pseudo</span>
+    </button>
+
+    <button class="theme-btn-vb" id="changeThemeBtn">
+      <span data-i18n="profil.btn.theme">Thèmes</span>
+    </button>
+
+    <!-- Bouton “Nos applis” désactivé/masqué pour le moment -->
+    <button class="applis-btn-vb" id="applisBtn" style="display:none;">
+      <span data-i18n="profil.btn.applis">Nos applis</span>
+    </button>
+  </main>
+
+  <!-- POPUP PSEUDO -->
+  <div class="popup-bg" id="popupPseudo">
+    <div class="popup-box">
+      <h2 data-i18n="profil.popup.pseudoTitle">Ton nouveau pseudo</h2>
+      <input type="text" id="newPseudo" maxlength="20" placeholder="Nouveau pseudo"/>
+      <div id="pseudoError"></div>
+      <div class="popup-buttons">
+        <button class="primary" id="btnSavePseudo" data-i18n="profil.popup.validate">Valider</button>
+        <button class="secondary" id="btnCancelPseudo" data-i18n="profil.popup.cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP THÈMES -->
+  <div id="theme-selector-popup" class="popup-theme-bg">
+    <div class="popup-theme-vb">
+      <h2 data-i18n="theme.popup.title">Choisis ton thème</h2>
+      <div class="theme-list-vb" id="themeListVB"></div>
+      <div class="popup-actions">
+        <button class="vb-btn-validate" id="btnValiderTheme" data-i18n="theme.popup.use">Valider</button>
+        <button class="vb-btn-cancel" id="btnCancelTheme" data-i18n="theme.popup.cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Petit helper i18n safe
+    function i18nSafe(key, fallback){
+      try{
+        if (window.I18N && typeof I18N.t === "function"){
+          const v = I18N.t(key);
+          if (v && v !== key) return v;
+        }
+      }catch(e){}
+      return fallback;
+    }
+
+    // ================== THÈMES LOCAUX ==================
+
+    function normalizeThemeKey(k){
+      return String(k || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g,"")
+        .replace(/\s+/g,"");
+    }
+
+    // liste de tous les thèmes dispo (même noms que tes dossiers / css)
+    function getAllThemesList(){
+      return [
+        "retro","neon","bubble","nature","nuit",
+        "space","cyber","angelique","luxury",
+        "grece","japon","arabic","vitraux"
+      ];
+    }
+
+    // thème courant partagé avec le jeu (clé "themeVBlocks")
+    function getCurrentTheme(){
+      const primaryKey = "themeVBlocks";
+      const legacyKey  = "vsky_theme";
+      let t = localStorage.getItem(primaryKey) || localStorage.getItem(legacyKey);
+      if (!t) t = "retro";
+      t = normalizeThemeKey(t);
+      localStorage.setItem(primaryKey, t);
+      localStorage.setItem(legacyKey, t);
+      return t;
+    }
+
+    function applyLocalTheme(themeKey){
+      const primaryKey = "themeVBlocks";
+      const legacyKey  = "vsky_theme";
+      const t = normalizeThemeKey(themeKey || getCurrentTheme() || "retro");
+
+      // enregistre
+      localStorage.setItem(primaryKey, t);
+      localStorage.setItem(legacyKey, t);
+
+      // met à jour la feuille de style spécifique (retro.css / neon.css / etc.)
+      let link = document.getElementById("theme-css");
+      if (!link){
+        link = document.createElement("link");
+        link.id  = "theme-css";
+        link.rel = "stylesheet";
+        document.head.appendChild(link);
+      }
+      link.href = "themes/" + t + ".css";
+
+      // data-theme pour themes.css
+      document.documentElement.setAttribute("data-theme", t);
+      document.body.setAttribute("data-theme", t);
+    }
+
+    // TOUS LES THÈMES SONT DÉBLOQUÉS
+    function getOwnedThemes(){
+      const all = getAllThemesList().map(normalizeThemeKey).filter(Boolean);
+      // on sauvegarde quand même la liste complète si tu veux t'en servir plus tard
+      localStorage.setItem("vsky_themes_possedes", JSON.stringify(all));
+      return all;
+    }
+
+    // ================== PSEUDO ==================
+    function getLocalPseudo(){
+      return localStorage.getItem("vsky_pseudo") || "MonPseudo";
+    }
+    function setLocalPseudo(p){
+      localStorage.setItem("vsky_pseudo", p);
+    }
+
+    function setupPseudoPopup(){
+      const popup   = document.getElementById("popupPseudo");
+      const btnOpen = document.getElementById("btnChangePseudo");
+      const btnSave = document.getElementById("btnSavePseudo");
+      const btnCancel = document.getElementById("btnCancelPseudo");
+      const input   = document.getElementById("newPseudo");
+      const err     = document.getElementById("pseudoError");
+      const labelEl = document.getElementById("profilPseudo");
+
+      btnOpen.addEventListener("click", () => {
+        err.textContent = "";
+        input.value = getLocalPseudo();
+        popup.classList.add("active");
+        setTimeout(()=>input.focus(), 40);
+      });
+
+      btnCancel.addEventListener("click", () => {
+        popup.classList.remove("active");
+      });
+
+      btnSave.addEventListener("click", () => {
+        const v = (input.value || "").trim();
+        if (!v){
+          err.textContent = i18nSafe("profil.popup.error.empty","Entre un pseudo.");
+          return;
+        }
+        if (v.length > 20){
+          err.textContent = i18nSafe("profil.popup.error.length","20 caractères maximum.");
+          return;
+        }
+        setLocalPseudo(v);
+        if (labelEl) labelEl.textContent = v;
+        err.textContent = i18nSafe("profil.popup.success","Pseudo mis à jour.");
+        setTimeout(()=>popup.classList.remove("active"), 400);
+      });
+    }
+
+    // ================== POPUP THÈMES ==================
+    function openThemePopup(){
+      const popup    = document.getElementById("theme-selector-popup");
+      const themeBox = document.getElementById("themeListVB");
+      if (!popup || !themeBox) return;
+
+      const ALL_THEMES = getOwnedThemes(); // ici = tous les thèmes
+
+      let selectedTheme = getCurrentTheme();
+
+      themeBox.innerHTML = ALL_THEMES.map(theme => {
+        const label = theme.charAt(0).toUpperCase() + theme.slice(1);
+        return `
+          <button class="theme-choice-vb"
+                  data-theme="${theme}">
+            ${label}
+          </button>`;
+      }).join("");
+
+      popup.classList.add("active");
+
+      // état actif
+      Array.from(themeBox.querySelectorAll(".theme-choice-vb")).forEach(btn => {
+        if (normalizeThemeKey(btn.dataset.theme) === selectedTheme) {
+          btn.classList.add("active");
+        }
+      });
+
+      // clic sur les thèmes (tous sont débloqués)
+      Array.from(themeBox.querySelectorAll(".theme-choice-vb")).forEach(btn => {
+        btn.addEventListener("click", () => {
+          Array.from(themeBox.querySelectorAll(".theme-choice-vb")).forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          selectedTheme = normalizeThemeKey(btn.dataset.theme);
+        });
+      });
+
+      document.getElementById("btnValiderTheme").onclick = () => {
+        if (!selectedTheme) return;
+        applyLocalTheme(selectedTheme);
+        popup.classList.remove("active");
+      };
+      document.getElementById("btnCancelTheme").onclick = () => {
+        popup.classList.remove("active");
+      };
+    }
+
+    // ================== INIT PAGE ==================
+    window.addEventListener("DOMContentLoaded", () => {
+      // appliquer le thème courant (clé partagée avec le jeu)
+      applyLocalTheme(getCurrentTheme());
+
+      // pseudo courant
+      const pseudoEl = document.getElementById("profilPseudo");
+      if (pseudoEl) pseudoEl.textContent = getLocalPseudo();
+
+      // popup pseudo
+      setupPseudoPopup();
+
+      // bouton "Thèmes"
+      document.getElementById("changeThemeBtn")?.addEventListener("click", openThemePopup);
+
+      // bouton "Nos applis" désactivé
+      const btnApplis = document.getElementById("applisBtn");
+      if (btnApplis){
+        btnApplis.style.display = "none";
+        btnApplis.onclick = null;
+      }
+    });
+  </script>
+</body>
+</html>

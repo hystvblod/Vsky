@@ -1,0 +1,48 @@
+﻿<!doctype html><html lang="fr"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Vskystack – Boutique</title>
+<script>(()=>{try{const k="themeVBlocks";if(!localStorage.getItem(k))localStorage.setItem(k,"retro");document.documentElement.setAttribute("data-theme",localStorage.getItem(k)||"retro");}catch{}})();</script>
+<link rel="stylesheet" href="style/main.css"/>
+<link rel="stylesheet" href="themes/themes.css"/>
+<link rel="stylesheet" href="themes/retro.css" id="theme-css"/>
+</head><body>
+<header class="topbar">
+  <h1 class="logo">Boutique</h1>
+  <nav class="nav">
+    <a class="menu-btn" href="index.html">Accueil</a>
+    <a class="menu-btn" href="vskystack.html">Jouer</a>
+    <button class="menu-btn ghost" id="btnTheme">Thème</button>
+  </nav>
+</header>
+
+<main class="container">
+  <section class="hud" style="justify-content:center;">
+    <div class="score-box"><b>VCoins</b><div class="val" id="vcoins">0</div></div>
+    <div class="score-box"><b>Jetons</b><div class="val" id="tokens">0</div></div>
+    <div class="score-box"><b>Status</b><div class="val" id="status">Local</div></div>
+  </section>
+
+  <h2>Thèmes (VCoins)</h2><div id="themes" class="shop-grid"></div>
+  <h2 style="margin-top:20px;">Packs VCoins</h2><div id="packs" class="shop-grid"></div>
+  <h2 style="margin-top:20px;">Jetons (Revive)</h2><div id="tokensShop" class="shop-grid"></div>
+
+  <h2 style="margin-top:20px;">Options</h2>
+  <div class="card"><span class="tag">NoPub</span><p>Désactiver les publicités.</p>
+    <button class="btn" id="btnNoPub">Activer NoPub (IAP réelle à brancher)</button>
+  </div>
+</main>
+
+<script src="js/core/config.js"></script>
+<script src="js/core/storage.js"></script>
+<script src="js/core/ads.js"></script>
+<script src="js/shop/boutique.js"></script>
+<script>
+  (function(){
+    const link=document.getElementById("theme-css");
+    const key="themeVBlocks"; const list=["retro","neon","nuit","bubble","nature"];
+    function get(){return localStorage.getItem(key)||"retro";}
+    if(link) link.href="themes/"+get()+".css";
+    document.getElementById("btnTheme")?.addEventListener("click",()=>{const i=list.indexOf(get());const n=list[(i+1)%list.length];localStorage.setItem(key,n);document.documentElement.setAttribute("data-theme",n);if(link)link.href="themes/"+n+".css";});
+  })();
+</script>
+</body></html>

@@ -1,0 +1,15 @@
+﻿window.CONFIG = {
+  DAILY_REWARD: 100,
+  ADS: { ADMOB: { INTER_ID: "", REWARD_ID: "" } },
+  GAME: {
+    BASE_WIDTH: 220,
+    BLOCK_HEIGHT: 24,
+    SPEED_X: 180,
+    SPEED_INC: 10,
+    PERFECT_WINDOW: 4,
+    REWARD_PERFECT: 4,
+    REWARD_HEIGHT: 1,
+    MIN_WIDTH: 14,
+    REVIVE_WIDTH_BONUS: 6
+  }
+};

@@ -1,0 +1,128 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Vskystack – Jeu</title>
+
+  <link rel="stylesheet" href="style/main.css"/>
+  <link rel="stylesheet" href="themes/themes.css"/>
+  <link rel="stylesheet" href="themes/retro.css" id="theme-css"/>
+
+  <!-- PIXI: CDN + fallback + local (optionnel) -->
+  <script src="https://unpkg.com/pixi.js@7/dist/pixi.min.js"></script>
+  <script>if(!window.PIXI){document.write('<script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"><\/script>')}</script>
+  <script>if(!window.PIXI){document.write('<script src="js/vendor/pixi.min.js"><\/script>')}</script>
+
+  <style>
+    .stage-wrap{
+      background:#17191d;
+      border:2px solid #3a2e20;
+      border-radius:12px;
+      box-shadow:inset 0 0 0 2px rgba(255,198,108,.08);
+      aspect-ratio:9/16;
+      max-width:420px;
+      margin:0 auto;
+    }
+    .hud{display:flex;gap:8px;justify-content:center;margin:8px 0}
+    .score-box{background:#1f2026;border:2px solid #3e4150;border-radius:12px;padding:8px 12px;min-width:110px;text-align:center}
+    .score-box b{display:block;font-size:12px;opacity:.8}
+    .score-box .val{font-size:20px;font-weight:700}
+    .panel{background:#1d1c1a;border:1px solid #3a2e20;border-radius:12px;margin:8px auto;max-width:420px}
+    .panel .btn{margin:8px auto;display:inline-block;padding:10px 16px;border-radius:10px;border:0;background:#d7a552;color:#111;font-weight:700;cursor:pointer}
+    .topbar{display:flex;justify-content:space-between;align-items:center;max-width:860px;margin:8px auto;padding:8px 12px}
+    .logo{font-size:20px}
+    .nav .menu-btn{margin-left:8px}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center}
+    .overlay .sheet{background:#161616;border:1px solid #3a2e20;border-radius:16px;padding:18px;max-width:420px;width:92%}
+    .btn{background:#2d2d2d;color:#eee;border:1px solid #3d3d3d;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .btn.primary{background:#d7a552;color:#111;border:0}
+    .ghost{background:transparent;border:1px solid #3a2e20}
+    main.container{width:min(1080px,92vw);margin:12px auto}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <h1 class="logo">Vskystack <span class="sub">one-tap</span></h1>
+  <nav class="nav">
+    <a class="menu-btn" href="index.html">Accueil</a>
+    <a class="menu-btn" href="boutique.html">Boutique</a>
+    <button class="menu-btn ghost" id="btnTheme">Thème</button>
+  </nav>
+</header>
+
+<main class="container">
+  <section class="hud">
+    <div class="score-box"><b>Hauteur</b><div class="val" id="height">0</div></div>
+    <div class="score-box"><b>Meilleur</b><div class="val" id="best">0</div></div>
+    <div class="score-box"><b>VCoins</b><div class="val" id="vcoins">0</div></div>
+    <div class="score-box"><b>Jetons</b><div class="val" id="tokens">0</div></div>
+  </section>
+
+  <div class="panel" style="text-align:center;padding:10px 16px">
+    <button class="btn primary" id="btnNew">Nouvelle partie</button>
+  </div>
+
+  <div id="stage-wrap" class="stage-wrap"></div>
+
+  <!-- Overlay Game Over -->
+  <div id="overlay" class="overlay" style="display:none">
+    <div class="sheet">
+      <h3 id="ov-title">Partie terminée</h3>
+      <p id="ov-text">Tu peux revivre avec 1 jeton, ou gagner 1 jeton en regardant une vidéo.</p>
+      <div class="cta" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn" id="ov-revive">❤️ Revivre (1 jeton)</button>
+        <button class="btn" id="ov-reward">🎥 Gagner 1 jeton</button>
+        <button class="btn primary" id="ov-restart">↻ Rejouer</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* Thème simple : même clé que le profil, et data-theme sur html + body */
+(function(){
+  try{
+    const key  = "themeVBlocks";
+    const link = document.getElementById("theme-css");
+
+    const get = () => (localStorage.getItem(key) || "retro");
+
+    const set = (t) => {
+      if (!t) t = "retro";
+      // stocke
+      localStorage.setItem(key, t);
+      // attributs pour le CSS
+      document.documentElement.setAttribute("data-theme", t);
+      if (document.body) document.body.setAttribute("data-theme", t);
+      // feuille de style spécifique (retro.css / neon.css / etc.)
+      if (link) link.href = "themes/" + t + ".css";
+    };
+
+    // applique le thème courant au chargement
+    set(get());
+
+    // bouton "Thème" pour cycler rapidement (optionnel)
+    document.getElementById("btnTheme")?.addEventListener("click", () => {
+      const THEMES = ["retro","neon","nuit","bubble","nature"];
+      const cur   = get();
+      const i     = THEMES.indexOf(cur);
+      const next  = THEMES[(i + 1) % THEMES.length];
+      set(next);
+    });
+
+  } catch(e){}
+})();
+</script>
+
+<!-- PIXI: CDN -> fallback local -->
+<script src="https://unpkg.com/pixi.js@7/dist/pixi.min.js"></script>
+<script>if(!window.PIXI){document.write('<script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"><\\/script>')}</script>
+<script>if(!window.PIXI){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"><\\/script>')}</script>
+<script>if(!window.PIXI){document.write('<script src="js/pixi.min.js"><\\/script>')}</script>
+
+<!-- Jeu tout-en-un -->
+<script src="js/game.js"></script>
+
+</body>
+</html>
