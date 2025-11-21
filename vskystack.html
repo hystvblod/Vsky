@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Vskystack – Jeu</title>
 
+  <!-- CSS global + un seul fichier de thèmes -->
   <link rel="stylesheet" href="style/main.css"/>
   <link rel="stylesheet" href="themes/themes.css"/>
-  <link rel="stylesheet" href="themes/retro.css" id="theme-css"/>
 
   <!-- PIXI: CDN + fallback + local (optionnel) -->
   <script src="https://unpkg.com/pixi.js@7/dist/pixi.min.js"></script>
@@ -16,10 +16,8 @@
 
   <style>
     .stage-wrap{
-      background:#17191d;
-      border:2px solid #3a2e20;
+      /* on laisse le fond géré par themes.css via data-theme */
       border-radius:12px;
-      box-shadow:inset 0 0 0 2px rgba(255,198,108,.08);
       aspect-ratio:9/16;
       max-width:420px;
       margin:0 auto;
@@ -80,35 +78,41 @@
 </main>
 
 <script>
-/* Thème simple : même clé que le profil, et data-theme sur html + body */
+/* Thème : une seule clé themeVBlocks + data-theme, pas de grece.css etc. */
 (function(){
   try{
-    const key  = "themeVBlocks";
-    const link = document.getElementById("theme-css");
+    const KEY    = "themeVBlocks";
+    const THEMES = [
+      "retro","neon","bubble","nature","nuit",
+      "space","cyber","angelique","luxury",
+      "grece","japon","arabic","vitraux"
+    ];
 
-    const get = () => (localStorage.getItem(key) || "retro");
+    const get = () => (localStorage.getItem(KEY) || "retro");
 
-    const set = (t) => {
+    const apply = (t) => {
       if (!t) t = "retro";
-      // stocke
-      localStorage.setItem(key, t);
-      // attributs pour le CSS
+      localStorage.setItem(KEY, t);
       document.documentElement.setAttribute("data-theme", t);
       if (document.body) document.body.setAttribute("data-theme", t);
-      // feuille de style spécifique (retro.css / neon.css / etc.)
-      if (link) link.href = "themes/" + t + ".css";
     };
 
-    // applique le thème courant au chargement
-    set(get());
+    // applique le thème actuel au chargement
+    apply(get());
 
-    // bouton "Thème" pour cycler rapidement (optionnel)
+    // bouton "Thème" : on cycle simplement la valeur, tout le reste est géré par themes.css
     document.getElementById("btnTheme")?.addEventListener("click", () => {
-      const THEMES = ["retro","neon","nuit","bubble","nature"];
-      const cur   = get();
-      const i     = THEMES.indexOf(cur);
-      const next  = THEMES[(i + 1) % THEMES.length];
-      set(next);
+      const cur  = get();
+      const idx  = THEMES.indexOf(cur);
+      const next = THEMES[(idx + 1 + THEMES.length) % THEMES.length];
+      apply(next);
+    });
+
+    // synchro éventuelle avec d'autres onglets (profil, etc.)
+    window.addEventListener("storage", (e) => {
+      if (e.key === KEY) {
+        apply(e.newValue || "retro");
+      }
     });
 
   } catch(e){}
@@ -121,7 +125,7 @@
 <script>if(!window.PIXI){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"><\\/script>')}</script>
 <script>if(!window.PIXI){document.write('<script src="js/pixi.min.js"><\\/script>')}</script>
 
-<!-- Jeu tout-en-un -->
+<!-- Jeu -->
 <script src="js/game.js"></script>
 
 </body>
