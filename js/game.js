@@ -360,6 +360,7 @@ wrap.appendChild(app.view);
 
   function newGame(){
     clearWorld();
+    world.y = 0; // ⬅ caméra remise à zéro au début
     height = 0;
     allowRevive = true;
     if (UI.heightEl) UI.heightEl.textContent = "0";
@@ -476,7 +477,7 @@ wrap.appendChild(app.view);
     last = { x: current.x, width: current.width, y: current.y };
 
     // on fait descendre légèrement la "caméra" quand la tour monte
-    world.y = Math.min(0, vHeight - 8 - (last.y + CFG.BLOCK_HEIGHT + 80));
+     world.y = 0;
 
     spawnNext();
   }
@@ -507,7 +508,7 @@ wrap.appendChild(app.view);
     current.width = newWidth;
 
     last = { x: current.x, width: current.width, y: current.y };
-    world.y = Math.min(0, vHeight - 8 - (last.y + CFG.BLOCK_HEIGHT + 80));
+     world.y = 0;
 
     height += 1;
     if (UI.heightEl) UI.heightEl.textContent = String(height);
