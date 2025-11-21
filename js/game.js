@@ -196,13 +196,18 @@
   const vWidth  = CFG.BASE_WIDTH;
   const vHeight = 400;
 
-  const app = new PIXI.Application({
-    backgroundAlpha: 0, // canvas transparent → fond géré par le CSS de thème
-    antialias: true,
-    width: 320,
-    height: 568
-  });
-  wrap.appendChild(app.view);
+const app = new PIXI.Application({
+  backgroundAlpha: 0,
+  antialias: true,
+  width: 320,
+  height: 568
+});
+
+// on donne le même id que V-Blocks
+app.view.id = "gameCanvas";
+
+wrap.appendChild(app.view);
+
 
   const world = new PIXI.Container();
   app.stage.addChild(world);
