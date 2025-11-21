@@ -15,36 +15,105 @@
     ovText:   document.getElementById("ov-text")
   };
 
-  const CFG = window.CONFIG?.GAME || {
-    BASE_WIDTH: 220,
-    BLOCK_HEIGHT: 24,
-    SPEED_X: 180,              // vitesse de base
-    SPEED_INC_PER_LEVEL: 3,    // bonus vitesse par étage (mode classique)
-    SPEED_MAX_CLASSIC: 280,    // plafond vitesse en classique
-    WIND_MAX: 28,
-    PERFECT_WINDOW: 4,
-    REWARD_PERFECT: 4,
-    REWARD_HEIGHT: 1,
-    MIN_WIDTH: 14,
-    REVIVE_WIDTH_BONUS: 6
+  const STORAGE = {
+    getWallet(){
+      try{
+        const raw = localStorage.getItem("vplay_wallet");
+        if (!raw) return { vcoins:0, jetons:0 };
+        const obj = JSON.parse(raw);
+        return {
+          vcoins: Number(obj.vcoins || 0) || 0,
+          jetons: Number(obj.jetons || 0) || 0
+        };
+      }catch(e){
+        return { vcoins:0, jetons:0 };
+      }
+    },
+    setWallet(w){
+      localStorage.setItem("vplay_wallet", JSON.stringify({
+        vcoins: Number(w.vcoins || 0) || 0,
+        jetons: Number(w.jetons || 0) || 0
+      }));
+    },
+    getBest(){
+      return Number(localStorage.getItem("vskystack_best") || 0) || 0;
+    },
+    setBest(v){
+      localStorage.setItem("vskystack_best", String(v|0));
+    }
   };
 
-  // ---------- Mode : classique / infini via ?mode=. ----------
-  let GAME_MODE = "classique";
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const m = (params.get("mode") || "").toLowerCase();
-    if (m === "infini" || m === "infinite") GAME_MODE = "infini";
-  } catch(e){}
+  const CFG = {
+    GRAVITY:        0.48,
+    JUMP_VY:        -9.0,
+    BASE_SPEED:     2.0,
+    SPEED_INC:      0.08,
+    SPEED_MAX:      4.8,
+    BLOCK_HEIGHT:   24,
+    STRIP_HEIGHT:   8,
+    START_OFFSET_Y: -140
+  };
 
-  try { window.userStore?.ensure && window.userStore.ensure(); } catch(e) {}
+  const wrap = document.getElementById("stage-wrap");
+  if (!wrap || !window.PIXI) return;
 
-  if (!window.PIXI) {
-    console.warn("PIXI introuvable");
-    return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const vWidth  = 320;
+  const vHeight = 568;
+
+  const app = new PIXI.Application({
+    backgroundAlpha: 0, // canvas transparent → fond géré par le CSS de thème
+    antialias: true,
+    width: 320,
+    height: 568
+  });
+
+  // important pour appliquer le CSS (#gameCanvas) comme VBlocks
+  app.view.id = "gameCanvas";
+
+  wrap.appendChild(app.view);
+
+  const world = new PIXI.Container();
+  app.stage.addChild(world);
+
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", resize);
+  resize();
+  requestAnimationFrame(()=>resize());
+
+  function resize(){
+    const rect  = wrap.getBoundingClientRect();
+    const ratio = Math.min(rect.width  / vWidth, rect.height / vHeight);
+    const scale = ratio > 0 ? ratio : 1;
+    world.scale.set(scale);
+    const canvas = app.view;
+    canvas.style.width  = (vWidth  * scale) + "px";
+    canvas.style.height = (vHeight * scale) + "px";
   }
 
-  // ---------- THÈMES : couleurs / textures comme VBlocks/Vanoise ----------
+  const ticker = app.ticker;
+
+  const STATE = {
+    IDLE: "idle",
+    AIM: "aim",
+    DROP: "drop",
+    GAMEOVER: "gameover"
+  };
+
+  let state        = STATE.IDLE;
+  let current      = null;
+  let last         = null;
+  let vy           = 0;
+  let speedX       = CFG.BASE_SPEED;
+  let direction    = 1;
+  let height       = 0;
+  let allowRevive  = true;
+  let wallet       = STORAGE.getWallet();
+  let bestHeight   = STORAGE.getBest();
+
+  let texCache     = {};
+  let stripTexture = null;
+  let baseTexture  = null;
 
   function getCurrentThemeNameVSky(){
     try {
@@ -59,239 +128,159 @@
   // IMPORTANT : ici tout est en .webp
   // et chaque thème "texture" a un tableau de textures → tirage aléatoire par bloc
   const THEME_STYLES = {
-    // blocs "code" (comme avant)
-    neon:   { mode: "color",   fill: 0x111111, stroke: 0x00ffff },
-    retro:  { mode: "color",   fill: 0xf5d28c, stroke: 0x000000 },
-    nuit:   { mode: "color",   fill: 0xcccccc, stroke: 0x444444 },
-    default:{ mode: "color",   fill: 0xFFD27F, stroke: 0x333333 },
-
-    // === Thèmes avec lettres I J L O S T Z (couleurs différentes) ===
+    neon: {
+      mode: "code",
+      base: "themes/neon/blocks/1.webp",
+      blocks: [
+        "themes/neon/blocks/1.webp",
+        "themes/neon/blocks/2.webp",
+        "themes/neon/blocks/3.webp",
+        "themes/neon/blocks/4.webp"
+      ]
+    },
+    rétro: {
+      mode: "code",
+      base: "themes/retro/blocks/1.webp",
+      blocks: [
+        "themes/retro/blocks/1.webp",
+        "themes/retro/blocks/2.webp",
+        "themes/retro/blocks/3.webp"
+      ]
+    },
+    retro: {
+      mode: "code",
+      base: "themes/retro/blocks/1.webp",
+      blocks: [
+        "themes/retro/blocks/1.webp",
+        "themes/retro/blocks/2.webp",
+        "themes/retro/blocks/3.webp"
+      ]
+    },
     bubble: {
-      mode: "texture",
-      textures: [
-        "themes/bubble/I.webp",
-        "themes/bubble/J.webp",
-        "themes/bubble/L.webp",
-        "themes/bubble/O.webp",
-        "themes/bubble/S.webp",
-        "themes/bubble/T.webp",
-        "themes/bubble/Z.webp"
+      mode: "code",
+      base: "themes/bubble/blocks/1.webp",
+      blocks: [
+        "themes/bubble/blocks/1.webp",
+        "themes/bubble/blocks/2.webp",
+        "themes/bubble/blocks/3.webp"
       ]
     },
     nature: {
-      mode: "texture",
-      textures: [
-        "themes/nature/I.webp",
-        "themes/nature/J.webp",
-        "themes/nature/L.webp",
-        "themes/nature/O.webp",
-        "themes/nature/S.webp",
-        "themes/nature/T.webp",
-        "themes/nature/Z.webp"
+      mode: "code",
+      base: "themes/nature/blocks/1.webp",
+      blocks: [
+        "themes/nature/blocks/1.webp",
+        "themes/nature/blocks/2.webp",
+        "themes/nature/blocks/3.webp"
       ]
     },
-    angelique: {
-      mode: "texture",
-      textures: [
-        "themes/angelique/I.webp",
-        "themes/angelique/J.webp",
-        "themes/angelique/L.webp",
-        "themes/angelique/O.webp",
-        "themes/angelique/S.webp",
-        "themes/angelique/T.webp",
-        "themes/angelique/Z.webp"
+    nuit: {
+      mode: "code",
+      base: "themes/nuit/blocks/1.webp",
+      blocks: [
+        "themes/nuit/blocks/1.webp",
+        "themes/nuit/blocks/2.webp",
+        "themes/nuit/blocks/3.webp"
+      ]
+    },
+    space: {
+      mode: "code",
+      base: "themes/space/blocks/1.webp",
+      blocks: [
+        "themes/space/blocks/1.webp",
+        "themes/space/blocks/2.webp",
+        "themes/space/blocks/3.webp"
       ]
     },
     cyber: {
-      mode: "texture",
-      textures: [
-        "themes/cyber/I.webp",
-        "themes/cyber/J.webp",
-        "themes/cyber/L.webp",
-        "themes/cyber/O.webp",
-        "themes/cyber/S.webp",
-        "themes/cyber/T.webp",
-        "themes/cyber/Z.webp"
+      mode: "code",
+      base: "themes/cyber/blocks/1.webp",
+      blocks: [
+        "themes/cyber/blocks/1.webp",
+        "themes/cyber/blocks/2.webp",
+        "themes/cyber/blocks/3.webp"
       ]
     },
-    japon: {
-      mode: "texture",
-      textures: [
-        "themes/japon/I.webp",
-        "themes/japon/J.webp",
-        "themes/japon/L.webp",
-        "themes/japon/O.webp",
-        "themes/japon/S.webp",
-        "themes/japon/T.webp",
-        "themes/japon/Z.webp"
-      ]
-    },
-
-    // === Thèmes "variantes" façon VBlocks (1..6 carrés random) ===
-    space: {
-      mode: "texture",
-      textures: [
-        "themes/space/1.webp",
-        "themes/space/2.webp",
-        "themes/space/3.webp",
-        "themes/space/4.webp",
-        "themes/space/5.webp",
-        "themes/space/6.webp"
-      ]
-    },
-    vitraux: {
-      mode: "texture",
-      textures: [
-        "themes/vitraux/1.webp",
-        "themes/vitraux/2.webp",
-        "themes/vitraux/3.webp",
-        "themes/vitraux/4.webp",
-        "themes/vitraux/5.webp",
-        "themes/vitraux/6.webp"
+    angelique: {
+      mode: "code",
+      base: "themes/angelique/blocks/1.webp",
+      blocks: [
+        "themes/angelique/blocks/1.webp",
+        "themes/angelique/blocks/2.webp",
+        "themes/angelique/blocks/3.webp"
       ]
     },
     luxury: {
-      mode: "texture",
-      textures: [
-        "themes/luxury/1.webp",
-        "themes/luxury/2.webp",
-        "themes/luxury/3.webp",
-        "themes/luxury/4.webp",
-        "themes/luxury/5.webp",
-        "themes/luxury/6.webp"
-      ]
-    },
-
-    // === Thèmes mono-image (comme grece/arabic dans VBlocks) ===
-    arabic: {
-      mode: "texture",
-      textures: [
-        "themes/arabic/block.webp"
+      mode: "code",
+      base: "themes/luxury/blocks/1.webp",
+      blocks: [
+        "themes/luxury/blocks/1.webp",
+        "themes/luxury/blocks/2.webp",
+        "themes/luxury/blocks/3.webp"
       ]
     },
     grece: {
-      mode: "texture",
-      textures: [
-        "themes/grece/block.webp"
+      mode: "code",
+      base: "themes/grece/blocks/1.webp",
+      blocks: [
+        "themes/grece/blocks/1.webp",
+        "themes/grece/blocks/2.webp",
+        "themes/grece/blocks/3.webp"
+      ]
+    },
+    japon: {
+      mode: "code",
+      base: "themes/japon/blocks/1.webp",
+      blocks: [
+        "themes/japon/blocks/1.webp",
+        "themes/japon/blocks/2.webp",
+        "themes/japon/blocks/3.webp"
+      ]
+    },
+    arabic: {
+      mode: "code",
+      base: "themes/arabic/blocks/1.webp",
+      blocks: [
+        "themes/arabic/blocks/1.webp",
+        "themes/arabic/blocks/2.webp",
+        "themes/arabic/blocks/3.webp"
+      ]
+    },
+    vitraux: {
+      mode: "code",
+      base: "themes/vitraux/blocks/1.webp",
+      blocks: [
+        "themes/vitraux/blocks/1.webp",
+        "themes/vitraux/blocks/2.webp",
+        "themes/vitraux/blocks/3.webp"
       ]
     }
   };
 
-  function getThemeStyle(){
-    const t = getCurrentThemeNameVSky();
-    return THEME_STYLES[t] || THEME_STYLES.default;
-  }
-
-  // cache des textures PIXI pour éviter de recréer à chaque bloc
-  const textureCache = {};
-  function getPixiTexture(url){
-    if (!url) return null;
-    if (!textureCache[url]) {
-      textureCache[url] = PIXI.Texture.from(url);
+  function loadTexturesForTheme(themeName){
+    const key = (themeName || "").toLowerCase();
+    const style = THEME_STYLES[key] || THEME_STYLES["retro"];
+    if (!texCache[key]){
+      texCache[key] = {
+        base:  PIXI.Texture.from(style.base),
+        list:  style.blocks.map(src => PIXI.Texture.from(src))
+      };
     }
-    return textureCache[url];
+    baseTexture  = texCache[key].base;
+    stripTexture = texCache[key].list[0];
   }
 
-  const wrap = document.getElementById("stage-wrap") || document.getElementById("game-wrap");
-  const vWidth  = CFG.BASE_WIDTH;
-  const vHeight = 400;
-
-const app = new PIXI.Application({
-  backgroundAlpha: 0,
-  antialias: true,
-  width: 320,
-  height: 568
-});
-
-// on donne le même id que V-Blocks
-app.view.id = "gameCanvas";
-
-wrap.appendChild(app.view);
-
-
-  const world = new PIXI.Container();
-  app.stage.addChild(world);
-
-  window.addEventListener("resize", resize);
-  window.addEventListener("orientationchange", resize);
-  resize();
-  requestAnimationFrame(resize);
-
-  let state = "idle";
-  let current = null;
-  let last = null;
-  let height = 0;
-  let best = 0;
-  let speedX = CFG.SPEED_X;
-  let dir = 1;
-  let allowRevive = true;
-  let targetY = 0; // y où le bloc doit atterrir
-
-  boot();
-
-  async function boot(){
-    try {
-      if (window.userStore?.getBest) {
-        best = await window.userStore.getBest();
-      } else if (window.userStore?.getBestHeight) {
-        best = await window.userStore.getBestHeight();
-      }
-      if (UI.bestEl) UI.bestEl.textContent = best ?? 0;
-
-      if (window.userStore?.getVCoins && UI.vcoinsEl) {
-        UI.vcoinsEl.textContent = await window.userStore.getVCoins();
-      }
-      if (window.userStore?.getTokens && UI.tokensEl) {
-        UI.tokensEl.textContent = await window.userStore.getTokens();
-      }
-    } catch(e){}
-
-    UI.btnNew && UI.btnNew.addEventListener("click", newGame);
-    UI.oRestart && UI.oRestart.addEventListener("click", () => {
-      hideOverlay();
-      newGame();
-    });
-
-    UI.oReward && UI.oReward.addEventListener("click", async () => {
-      const ok = await window.ads?.rewarded?.("token");
-      if (ok && window.userStore?.addTokens && UI.tokensEl) {
-        const n = await window.userStore.addTokens(1);
-        UI.tokensEl.textContent = n;
-      }
-    });
-
-    UI.oRevive && UI.oRevive.addEventListener("click", async () => {
-      if (!allowRevive || state !== "over" || !window.userStore?.getTokens) return;
-
-      const tok = await window.userStore.getTokens();
-      if (tok > 0) {
-        await window.userStore.addTokens(-1);
-        if (UI.tokensEl) UI.tokensEl.textContent = await window.userStore.getTokens();
-        allowRevive = false;
-        hideOverlay();
-        reviveContinue();
-      }
-    });
-
-    app.view.addEventListener("pointerdown", () => {
-      if (state === "aim") dropBlock();
-    });
-
-    newGame();
-  }
-
-  function resize(){
-    if (!wrap) return;
-    const cw = wrap.clientWidth || 0;
-    const w  = Math.max(260, cw - 16);
-    const h  = Math.max(420, Math.floor(w * 16 / 9));
-    app.renderer.resize(w, h);
-    const scale = w / vWidth;
-    world.scale.set(scale);
-  }
-
-  function clearWorld(){
-    world.removeChildren();
+  function randomBlockTexture(){
+    if (!baseTexture){
+      loadTexturesForTheme(getCurrentThemeNameVSky());
+    }
+    const themeName = getCurrentThemeNameVSky().toLowerCase();
+    const style = THEME_STYLES[themeName] || THEME_STYLES["retro"];
+    const list  = texCache[themeName]?.list || style.blocks.map(src => PIXI.Texture.from(src));
+    texCache[themeName] = texCache[themeName] || { base: PIXI.Texture.from(style.base), list };
+    const arr = texCache[themeName].list;
+    const idx = (Math.random() * arr.length) | 0;
+    return arr[idx] || arr[0];
   }
 
   function rect(color, x, y, w, h){
@@ -304,235 +293,239 @@ wrap.appendChild(app.view);
     return g;
   }
 
-  // === création d'un bloc avec tirage aléatoire dans les textures du thème ===
-  function createThemedBlock(x, y, w, h){
-    const style = getThemeStyle();
+  function createBlockSprite(width, height, tex){
+    if (!tex) tex = randomBlockTexture();
+    const sprite = new PIXI.Sprite(tex);
+    sprite.width  = width;
+    sprite.height = height;
+    sprite.anchor.set(0, 0);
+    return sprite;
+  }
 
-    if (style.mode === "texture") {
-      // on récupère toutes les textures possibles pour ce thème (lettres ou 1..6)
-      const arr = style.textures && style.textures.length
-        ? style.textures
-        : (style.texture ? [style.texture] : null);
-
-      if (arr && arr.length) {
-        const idx = (Math.random() * arr.length) | 0;
-        const url = arr[idx];
-        const tex = getPixiTexture(url);
-        if (tex) {
-          const sprite = new PIXI.Sprite(tex);
-          sprite.x = x;
-          sprite.y = y;
-          sprite.width  = w;
-          sprite.height = h;
-          return sprite;
-        }
-      }
-      // si jamais aucune texture valide → fallback couleur
+  function clearlayer(container){
+    while (container.children.length){
+      container.removeChildAt(0);
     }
+  }
 
-    const fill   = style.fill ?? 0xFFD27F;
-    const stroke = style.stroke;
-    const g = new PIXI.Graphics();
-    g.beginFill(fill);
-    g.drawRect(0, 0, w, h);
-    g.endFill();
-    if (typeof stroke === "number") {
-      g.lineStyle(1, stroke, 1);
-      g.drawRect(0, 0, w, h);
-    }
-    g.x = x;
-    g.y = y;
-    return g;
+  function clearWorld(){
+    clearlayer(world);
+    current   = null;
+    last      = null;
+    vy        = 0;
+    direction = 1;
   }
 
   function recomputeSpeed(){
-    const base = CFG.SPEED_X;
-    if (GAME_MODE === "infini") {
-      // mode infini : vitesse fixe
-      speedX = base;
-    } else {
-      // mode classique : +vitesse par étage jusqu'à un plafond
-      const inc = (CFG.SPEED_INC_PER_LEVEL || 0) * Math.max(0, height);
-      const max = CFG.SPEED_MAX_CLASSIC || (base * 2);
-      speedX = Math.min(base + inc, max);
-    }
+    const base = CFG.BASE_SPEED + height * CFG.SPEED_INC;
+    const max  = CFG.SPEED_MAX;
+    speedX     = Math.min(base, max);
   }
 
   function newGame(){
     clearWorld();
-    world.y = 0; // ⬅ caméra remise à zéro au début
+    world.y = 0;
     height = 0;
     allowRevive = true;
     if (UI.heightEl) UI.heightEl.textContent = "0";
 
     recomputeSpeed();
-    state = "aim";
+    state = STATE.AIM;
 
-    // sol
     const ground = rect(0x2b2b2b, 0, vHeight - 8, vWidth, 8);
     world.addChild(ground);
 
-    // premier bloc (fondation)
     const bw = Math.min((vWidth * 0.8) | 0, 160);
     const baseY = vHeight - 8 - CFG.BLOCK_HEIGHT;
-    last = { x: (vWidth - bw) / 2, width: bw, y: baseY };
-    const baseBlock = createThemedBlock(last.x, last.y, last.width, CFG.BLOCK_HEIGHT);
-    baseBlock.alpha = 0.95;
-    baseBlock.name = "last";
-    world.addChild(baseBlock);
 
-    targetY = last.y - CFG.BLOCK_HEIGHT;
+    const baseBlock = createBlockSprite(bw, CFG.BLOCK_HEIGHT, baseTexture);
+    baseBlock.x = (vWidth - bw) / 2;
+    baseBlock.y = baseY;
+    world.addChild(baseBlock);
+    last = baseBlock;
 
     spawnNext();
-    app.ticker.add(update);
+
+    state = STATE.AIM;
+    ticker.add(update);
   }
 
   function spawnNext(){
-    const w = last ? last.width : Math.min((vWidth * 0.8) | 0, 160);
+    const bw = last ? last.width : Math.min((vWidth * 0.8) | 0, 160);
+    const b  = createBlockSprite(bw, CFG.BLOCK_HEIGHT);
 
-    targetY = last ? (last.y - CFG.BLOCK_HEIGHT) : (vHeight - 8 - 2 * CFG.BLOCK_HEIGHT);
-    const startY = targetY - CFG.BLOCK_HEIGHT * 3;
+    b.x = 0;
+    b.y = last ? (last.y + CFG.START_OFFSET_Y) : (vHeight * 0.3);
+    world.addChild(b);
+    current = b;
+    vy = 0;
+    direction = 1;
+  }
 
-    const startLeft = Math.random() < 0.5;
-    const x = startLeft ? 0 : (vWidth - w);
-    dir = startLeft ? +1 : -1;
+  function clamp(x, min, max){
+    return x < min ? min : (x > max ? max : x);
+  }
 
-    current = createThemedBlock(x, startY, w, CFG.BLOCK_HEIGHT);
-    current.name = "current";
-    world.addChild(current);
-    state = "aim";
+  function placeOrFail(){
+    if (!current || !last){
+      missAndGameOver();
+      return;
+    }
+
+    const lx = last.x;
+    const rx = last.x + last.width;
+    const cx = current.x;
+    const ex = current.x + current.width;
+
+    const overlapL = Math.max(lx, cx);
+    const overlapR = Math.min(rx, ex);
+    const overlapW = overlapR - overlapL;
+
+    if (overlapW <= 4){
+      missAndGameOver();
+      return;
+    }
+
+    if (overlapW < current.width){
+      const trimmed = createBlockSprite(overlapW, CFG.BLOCK_HEIGHT, current.texture);
+      trimmed.x = overlapL;
+      trimmed.y = current.y;
+      world.addChild(trimmed);
+      world.removeChild(current);
+      current.destroy({ children:false, texture:false, baseTexture:false });
+      current = trimmed;
+    }
+
+    const newWidth = current.width;
+    last = { x: current.x, width: current.width, y: current.y };
+    world.y = 0;
+
+    height += 1;
+    if (UI.heightEl) UI.heightEl.textContent = String(height);
+    recomputeSpeed();
+
+    if (height > bestHeight){
+      bestHeight = height;
+      STORAGE.setBest(bestHeight);
+      if (UI.bestEl) UI.bestEl.textContent = String(bestHeight);
+    }
+
+    if (height % 3 === 0){
+      wallet.vcoins += 5;
+      STORAGE.setWallet(wallet);
+      refreshWalletUI();
+    }
+
+    spawnNext();
+  }
+
+  function missAndGameOver(){
+    state = STATE.GAMEOVER;
+    ticker.remove(update);
+    showGameOver();
+  }
+
+  function reviveContinue(){
+    allowRevive = false;
+    if (UI.overlay) UI.overlay.style.display = "none";
+
+    if (current){
+      current.y = last.y - CFG.BLOCK_HEIGHT - 4;
+      vy = CFG.JUMP_VY * 0.4;
+      state = STATE.DROP;
+      ticker.add(update);
+    }
   }
 
   function update(delta){
-    if (state === "aim") {
-      const dx = (speedX / 60) * dir * delta;
-      current.x += dx;
-      if (current.x <= 0) {
-        current.x = 0;
-        dir = +1;
+    const dt = delta || 1;
+    if (state === STATE.AIM){
+      if (current){
+        current.x += speedX * direction * dt;
+        if (current.x <= 0){
+          current.x = 0;
+          direction = 1;
+        } else if (current.x + current.width >= vWidth){
+          current.x = vWidth - current.width;
+          direction = -1;
+        }
       }
-      if (current.x + current.width >= vWidth) {
-        current.x = vWidth - current.width;
-        dir = -1;
-      }
-    } else if (state === "fall") {
-      const dy = 420 / 60 * delta;
-      current.y += dy;
-      if (current.y >= targetY) {
+    }
+    else if (state === STATE.DROP){
+      if (!current) return;
+
+      vy += CFG.GRAVITY * dt;
+      current.y += vy * dt;
+
+      const targetY = last.y - CFG.BLOCK_HEIGHT;
+      if (current.y >= targetY){
         current.y = targetY;
         placeOrFail();
       }
     }
   }
 
-  function dropBlock(){
-    if (state !== "aim") return;
-    state = "fall";
-    try { window.SFX?.tap && window.SFX.tap(); } catch(e){}
-  }
-
-  function placeOrFail(){
-    const L1 = last.x;
-    const R1 = last.x + last.width;
-    const L2 = current.x;
-    const R2 = current.x + current.width;
-    const L = Math.max(L1, L2);
-    const R = Math.min(R1, R2);
-    const overlap = R - L;
-
-    if (overlap <= 0) {
-      missAndGameOver();
-      return;
-    }
-
-    current.x = L;
-
-    // si c'est un Graphics couleur, on recoupe la largeur proprement
-    if (current instanceof PIXI.Graphics) {
-      const style = getThemeStyle();
-      const fill   = style.fill ?? 0xFFD27F;
-      const stroke = style.stroke;
-      current.clear();
-      current.beginFill(fill);
-      current.drawRect(0, 0, overlap, CFG.BLOCK_HEIGHT);
-      current.endFill();
-      if (typeof stroke === "number") {
-        current.lineStyle(1, stroke, 1);
-        current.drawRect(0, 0, overlap, CFG.BLOCK_HEIGHT);
-      }
-    }
-    current.width = overlap;
-
-    height += 1;
-    if (UI.heightEl) UI.heightEl.textContent = String(height);
-    recomputeSpeed();
-
-    // record
-    if (height > best) {
-      best = height;
-      if (UI.bestEl) UI.bestEl.textContent = String(best);
-      // ici tu peux pousser le best vers Supabase via userStore si besoin
-    }
-
-    last = { x: current.x, width: current.width, y: current.y };
-
-    // on fait descendre légèrement la "caméra" quand la tour monte
-     world.y = 0;
-
-    spawnNext();
-  }
-
-  function missAndGameOver(){
-    state = "over";
-    app.ticker.remove(update);
-
-    try { window.SFX?.fail && window.SFX.fail(); } catch(e){}
-
-    if (window.userStore?.setBestHeight && height > 0) {
-      window.userStore.setBestHeight(height).catch(()=>{});
-    }
-
-    showOverlay("Partie terminée", `Tu as construit ${height} étages.`);
-  }
-
-  function reviveContinue(){
-    if (!last || !current) return;
-
-    const boost = CFG.REVIVE_WIDTH_BONUS || 6;
-    const newWidth = Math.min(last.width + boost, vWidth);
-    const center = last.x + last.width / 2;
-    const nx = Math.max(0, Math.min(vWidth - newWidth, center - newWidth / 2));
-
-    current.x = nx;
-    current.y = last.y - CFG.BLOCK_HEIGHT;
-    current.width = newWidth;
-
-    last = { x: current.x, width: current.width, y: current.y };
-     world.y = 0;
-
-    height += 1;
-    if (UI.heightEl) UI.heightEl.textContent = String(height);
-    recomputeSpeed();
-
-    spawnNext();
-    app.ticker.add(update);
-    state = "aim";
-  }
-
-  function showOverlay(title, text){
+  function showGameOver(){
     if (!UI.overlay) return;
-    UI.ovTitle && (UI.ovTitle.textContent = title || "");
-    UI.ovText  && (UI.ovText.textContent  = text || "");
-    UI.overlay.classList.add("visible");
+    UI.overlay.style.display = "flex";
 
-    if (UI.oRevive) {
-      UI.oRevive.style.display = allowRevive ? "inline-flex" : "none";
+    if (UI.ovTitle) UI.ovTitle.textContent = "Tour terminée";
+    if (UI.ovText)  UI.ovText.textContent  = allowRevive
+      ? "Tu peux revivre avec 1 jeton ou regarder une pub pour en gagner 1."
+      : "Tu peux rejouer pour tenter de battre ton record !";
+
+    if (UI.oRevive){
+      UI.oRevive.style.display = allowRevive && wallet.jetons > 0 ? "inline-block" : "none";
     }
   }
 
-  function hideOverlay(){
-    if (!UI.overlay) return;
-    UI.overlay.classList.remove("visible");
+  function refreshWalletUI(){
+    if (UI.vcoinsEl) UI.vcoinsEl.textContent = String(wallet.vcoins);
+    if (UI.tokensEl) UI.tokensEl.textContent = String(wallet.jetons);
   }
+
+  if (UI.btnNew){
+    UI.btnNew.addEventListener("click", () => {
+      loadTexturesForTheme(getCurrentThemeNameVSky());
+      newGame();
+    });
+  }
+
+  if (UI.oRestart){
+    UI.oRestart.addEventListener("click", () => {
+      if (UI.overlay) UI.overlay.style.display = "none";
+      newGame();
+    });
+  }
+
+  if (UI.oRevive){
+    UI.oRevive.addEventListener("click", () => {
+      if (!allowRevive) return;
+      if (wallet.jetons <= 0) return;
+      wallet.jetons -= 1;
+      STORAGE.setWallet(wallet);
+      refreshWalletUI();
+      reviveContinue();
+    });
+  }
+
+  if (UI.oReward){
+    UI.oReward.addEventListener("click", () => {
+      wallet.jetons += 1;
+      STORAGE.setWallet(wallet);
+      refreshWalletUI();
+      reviveContinue();
+    });
+  }
+
+  if (UI.bestEl)   UI.bestEl.textContent   = String(bestHeight);
+  refreshWalletUI();
+
+  app.view.addEventListener("pointerdown", () => {
+    if (state === STATE.AIM){
+      state = STATE.DROP;
+      vy = 0;
+    }
+  });
 
 })();
